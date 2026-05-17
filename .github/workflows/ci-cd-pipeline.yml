@@ -10,6 +10,7 @@ env:
   AZURE_WEBAPP_NAME_PRODUCTION: WebAppNameAngular
   NODE_VERSION: '20.x'
   ANGULAR_PACKAGE_PATH: dist/myAngularAppForTes/browser
+  HEALTHCHECK_PATH: /ping   # Health check endpoint
 
 permissions:
   contents: read
@@ -61,6 +62,10 @@ jobs:
               }
             ]
           }' > ${{ env.ANGULAR_PACKAGE_PATH }}/routes.json
+
+      - name: Add health check file
+        run: |
+          echo '<!DOCTYPE html><html><body>OK</body></html>' > ${{ env.ANGULAR_PACKAGE_PATH }}/ping.html
 
       - name: Upload Angular artifact
         uses: actions/upload-artifact@v4
