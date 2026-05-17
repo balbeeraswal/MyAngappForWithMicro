@@ -138,7 +138,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: api-artifact
-          path: ./api
+          path: ./output
 
       - name: Azure Login
         uses: azure/login@v2
@@ -159,7 +159,7 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_API_NAME_STAGING }}
-          package: ./api
+          package: ./output
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -178,7 +178,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: api-artifact
-          path: ./api
+          path: ./output
 
       - name: Azure Login
         uses: azure/login@v2
@@ -199,4 +199,4 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_API_NAME_PRODUCTION }}
-          package: ./api
+          package: ./output
