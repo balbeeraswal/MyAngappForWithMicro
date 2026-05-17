@@ -1,35 +1,28 @@
 name: Angular CI/CD Pipeline
-
 on:
   push:
     branches: ['main']
   workflow_dispatch:
-
 env:
   AZURE_WEBAPP_NAME_STAGING: WebAppNameAngularStaging
   AZURE_WEBAPP_NAME_PRODUCTION: WebAppNameAngular
   NODE_VERSION: '20.x'
   ANGULAR_PACKAGE_PATH: dist/myAngularAppForTes/browser
-  HEALTHCHECK_PATH: /ping   # Health check endpoint
-
+  HEALTHCHECK_PATH: /ping
 permissions:
   contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Run Angular tests (Vitest)
         run: npm test -- --no-watch
 
@@ -38,19 +31,15 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build Angular (production)
         run: npm run build -- --configuration production
-
       - name: Add routes.json for SPA fallback
         run: |
           echo '{
@@ -62,10 +51,26 @@ jobs:
               }
             ]
           }' > ${{ env.ANGULAR_PACKAGE_PATH }}/routes.json
-
       - name: Add health check file
         run: |
           echo '<!DOCTYPE html><html><body>OK</body></html>' > ${{ env.ANGULAR_PACKAGE_PATH }}/ping.html
+
+      # ---- NEW: bundle serve so Azure doesn't download it at runtime ----
+      - name: Add package.json for serve
+        run: |
+          echo '{
+            "name": "angular-app",
+            "version": "1.0.0",
+            "scripts": {
+              "start": "node_modules/.bin/serve -s . -l 8080"
+            },
+            "dependencies": {
+              "serve": "^14.2.6"
+            }
+          }' > ${{ env.ANGULAR_PACKAGE_PATH }}/package.json
+      - name: Install serve into dist
+        run: npm install --prefix ${{ env.ANGULAR_PACKAGE_PATH }} --omit=dev
+      # -------------------------------------------------------------------
 
       - name: Upload Angular artifact
         uses: actions/upload-artifact@v4
@@ -82,12 +87,16 @@ jobs:
         with:
           name: angular-artifact
           path: ./angular
-
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      - name: Set startup command
+        run: |
+          az webapp config set \
+            --name ${{ env.AZURE_WEBAPP_NAME_STAGING }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --startup-file "npm start"
       - name: Deploy Angular to Staging
         uses: azure/webapps-deploy@v2
         with:
@@ -105,12 +114,16 @@ jobs:
         with:
           name: angular-artifact
           path: ./angular
-
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      - name: Set startup command
+        run: |
+          az webapp config set \
+            --name ${{ env.AZURE_WEBAPP_NAME_PRODUCTION }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --startup-file "npm start"
       - name: Deploy Angular to Production
         uses: azure/webapps-deploy@v2
         with:
