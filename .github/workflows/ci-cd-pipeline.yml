@@ -54,24 +54,21 @@ jobs:
       - name: Add health check file
         run: |
           echo '<!DOCTYPE html><html><body>OK</body></html>' > ${{ env.ANGULAR_PACKAGE_PATH }}/ping.html
-
-      # ---- NEW: bundle serve so Azure doesn't download it at runtime ----
       - name: Add package.json for serve
         run: |
           echo '{
             "name": "angular-app",
             "version": "1.0.0",
             "scripts": {
-              "start": "node_modules/.bin/serve -s . -l 8080"
+              "start": "serve -s . -l 8080"
             },
             "dependencies": {
               "serve": "^14.2.6"
             }
           }' > ${{ env.ANGULAR_PACKAGE_PATH }}/package.json
       - name: Install serve into dist
-        run: npm install --prefix ${{ env.ANGULAR_PACKAGE_PATH }} --omit=dev
-      # -------------------------------------------------------------------
-
+        working-directory: ${{ env.ANGULAR_PACKAGE_PATH }}
+        run: npm install --omit=dev
       - name: Upload Angular artifact
         uses: actions/upload-artifact@v4
         with:
