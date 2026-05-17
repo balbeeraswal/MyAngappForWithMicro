@@ -1,13 +1,8 @@
-import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
+
 import { TestBed } from '@angular/core/testing';
-import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
 import { EmployeeService } from './EmployeeService';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-
-beforeAll(() => {
-  TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
-});
 
 describe('EmployeeService', () => {
   let service: EmployeeService;
