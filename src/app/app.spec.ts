@@ -1,10 +1,11 @@
-import '@angular/compiler';
-import '@angular/platform-browser-dynamic';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { FormBuilder } from '@angular/forms';
+import { TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { ChangeDetectorRef } from '@angular/core';
-import { of } from 'rxjs';
 import { App } from './app';
+import { of } from 'rxjs';
+import { EmployeeService } from './EmployeeService';
+import { DashboardAdminComponent } from './features/dashboard/dashboard-admin/dashboard-admin-component';
 
 class MockEmployeeService {
   getEmployees = vi.fn().mockReturnValue(of({ data: [] }));
@@ -12,32 +13,43 @@ class MockEmployeeService {
   getEmployeeById = vi.fn();
 }
 
-class MockChangeDetectorRef implements ChangeDetectorRef {
-  markForCheck = vi.fn();
-  detach(): void {}
-  detectChanges(): void {}
-  checkNoChanges(): void {}
-  reattach(): void {}
-}
+describe('App', () => {
+  let component: App;
 
-describe('App Component', () => {
-  let app: App;
-  let mockEmployeeService: MockEmployeeService;
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [App],
+    }).compileComponents();
 
-  beforeEach(() => {
-    mockEmployeeService = new MockEmployeeService();
-    app = new App(new FormBuilder(), mockEmployeeService as any, new MockChangeDetectorRef());
+    const fixture = TestBed.createComponent(App);
+    component = fixture.componentInstance;
   });
 
-  it('should create the app', () => {
-    expect(app).toBeTruthy();
+  it('should create the component', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+describe('DashboardAdminComponent', () => {
+  let component: DashboardAdminComponent;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ReactiveFormsModule, DashboardAdminComponent],
+      providers: [
+        FormBuilder,
+        { provide: EmployeeService, useClass: MockEmployeeService },
+        { provide: ChangeDetectorRef, useValue: { markForCheck: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DashboardAdminComponent);
+    component = fixture.componentInstance;
   });
 
   it('should initialize employeeForm with required controls', () => {
-    app.ngOnInit();
-
-    expect(app.employeeForm.contains('empName')).toBe(true);
-    expect(app.employeeForm.contains('deptId')).toBe(true);
-    expect(app.employeeForm.contains('locId')).toBe(true);
+    expect(component.employeeForm.contains('empName')).toBe(true);
+    expect(component.employeeForm.contains('deptId')).toBe(true);
+    expect(component.employeeForm.contains('locId')).toBe(true);
   });
 });
