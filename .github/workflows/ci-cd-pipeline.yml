@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Angular CI/CD Pipeline
 
 on:
   push:
@@ -8,14 +8,8 @@ on:
 env:
   AZURE_WEBAPP_NAME_STAGING: WebAppNameAngularStaging
   AZURE_WEBAPP_NAME_PRODUCTION: WebAppNameAngular
-  AZURE_API_NAME_STAGING: WebAppNameApiStaging
-  AZURE_API_NAME_PRODUCTION: WebAppNameApiProd
   NODE_VERSION: '20.x'
-  DOTNET_VERSION: '8.0.x'
-  # Static files for Azure App Service (SPA). Use dist/myAngularAppForTes for full SSR package.
   ANGULAR_PACKAGE_PATH: dist/myAngularAppForTes/browser
-  # Set this when the API project is added to the repo (or use the correct relative path in a monorepo).
-  API_PROJECT_PATH: ./TestWebApiProject/TestWebApiProject1.csproj
 
 permissions:
   contents: read
@@ -25,16 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Detect API project
-        id: detect-api
-        run: |
-          if [ -f "${{ env.API_PROJECT_PATH }}" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "API project not found at ${{ env.API_PROJECT_PATH }} — skipping .NET steps."
-          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,37 +32,11 @@ jobs:
       - name: Run Angular tests (Vitest)
         run: npm test -- --no-watch
 
-      - name: Setup .NET
-        if: steps.detect-api.outputs.present == 'true'
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore .NET dependencies
-        if: steps.detect-api.outputs.present == 'true'
-        run: dotnet restore "${{ env.API_PROJECT_PATH }}"
-
-      - name: Run .NET tests
-        if: steps.detect-api.outputs.present == 'true'
-        run: dotnet test "${{ env.API_PROJECT_PATH }}" --configuration Release --no-restore
-
   build:
     runs-on: ubuntu-latest
     needs: test
-    outputs:
-      api_present: ${{ steps.detect-api.outputs.present }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Detect API project
-        id: detect-api
-        run: |
-          if [ -f "${{ env.API_PROJECT_PATH }}" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "API project not found at ${{ env.API_PROJECT_PATH }} — skipping .NET build and API deploy."
-          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -92,36 +50,23 @@ jobs:
       - name: Build Angular (production)
         run: npm run build -- --configuration production
 
-      - name: Setup .NET
-        if: steps.detect-api.outputs.present == 'true'
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore .NET dependencies
-        if: steps.detect-api.outputs.present == 'true'
-        run: dotnet restore "${{ env.API_PROJECT_PATH }}"
-
-      - name: Build .NET project
-        if: steps.detect-api.outputs.present == 'true'
-        run: dotnet build "${{ env.API_PROJECT_PATH }}" --configuration Release --no-restore
-
-      - name: Publish .NET project
-        if: steps.detect-api.outputs.present == 'true'
-        run: dotnet publish "${{ env.API_PROJECT_PATH }}" -c Release -o ./output --no-build
+      - name: Add routes.json for SPA fallback
+        run: |
+          echo '{
+            "routes": [
+              {
+                "route": "/*",
+                "serve": "/index.html",
+                "statusCode": 200
+              }
+            ]
+          }' > ${{ env.ANGULAR_PACKAGE_PATH }}/routes.json
 
       - name: Upload Angular artifact
         uses: actions/upload-artifact@v4
         with:
           name: angular-artifact
           path: ${{ env.ANGULAR_PACKAGE_PATH }}
-
-      - name: Upload API artifact
-        if: steps.detect-api.outputs.present == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-artifact
-          path: ./output
 
   deploy-staging:
     runs-on: ubuntu-latest
@@ -133,13 +78,6 @@ jobs:
           name: angular-artifact
           path: ./angular
 
-      - name: Download API artifact
-        if: needs.build.outputs.api_present == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: api-artifact
-          path: ./output
-
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -150,13 +88,6 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME_STAGING }}
           package: ./angular
-
-      - name: Deploy API to Staging
-        if: needs.build.outputs.api_present == 'true'
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.AZURE_API_NAME_STAGING }}
-          package: ./output
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -170,27 +101,13 @@ jobs:
           name: angular-artifact
           path: ./angular
 
-      - name: Download API artifact
-        if: needs.build.outputs.api_present == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: api-artifact
-          path: ./output
-
       - name: Azure Login
         uses: azure/login@v2
         with:
-         creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy Angular to Production
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME_PRODUCTION }}
           package: ./angular
-
-      - name: Deploy API to Production
-        if: needs.build.outputs.api_present == 'true'
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.AZURE_API_NAME_PRODUCTION }}
-          package: ./output
