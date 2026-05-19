@@ -8,12 +8,13 @@ import { Employee,ApiResponse } from './models/employee.model';
 })
 export class EmployeeService   {
 
-  private apiUrlGetEmps="https://icy-cliff-0a457e100.7.azurestaticapps.net/api/Employee/GetEmployees";
-  private apiUrlPostEmp="https://icy-cliff-0a457e100.7.azurestaticapps.net/api/Employee";
+  private apiUrlGetEmps="https://employeewebapp-bheseyhvhuawejg5.centralindia-01.azurewebsites.net/api/Employee/GetEmployees";
+  private apiUrlPostEmp="https://employeewebapp-bheseyhvhuawejg5.centralindia-01.azurewebsites.net/api/Employee";
   private apiUrl="https://localhost:7283/api/Employee/GetEmployees";
    private getEmpByIdapiUrl="https://localhost:7283/api/Employee";
   private postapiUrl="https://localhost:7283/api/Employee";
   private getDepartmentsAPIUrl="https://localhost:7004/api/Department/GetDepartments";
+ 
 
   constructor(private httpClient:HttpClient)  {} 
 
@@ -22,6 +23,7 @@ export class EmployeeService   {
    }
 
    addEmployee(employee:any):Observable<any[]>{
+     console.log("EmployeeService Post Employee Url:", this.apiUrlPostEmp);
     return this.httpClient.post<any>(this.apiUrlPostEmp,employee);
    }
 
