@@ -8,11 +8,11 @@ import { Employee,ApiResponse } from './models/employee.model';
 })
 export class EmployeeService   {
 
-  private apiUrlGetEmps="https://employeewebapp-bheseyhvhuawejg5.centralindia-01.azurewebsites.net/api/Employee/GetEmployees";
-  private apiUrlPostEmp="https://employeewebapp-bheseyhvhuawejg5.centralindia-01.azurewebsites.net/api/Employee/AddEmployee";
-  private apiUrl="https://localhost:7283/api/Employee/GetEmployees";
+   private apiUrlGetEmps="https://employeewebapp-bheseyhvhuawejg5.centralindia-01.azurewebsites.net/api/Employee/GetEmployees";
+   private apiUrlPostEmp="https://employeewebapp-bheseyhvhuawejg5.centralindia-01.azurewebsites.net/api/Employee/AddEmployee";
+  //  apiUrl="https://localhost:7283/api/Employee/GetEmployees";
    private getEmpByIdapiUrl="https://localhost:7283/api/Employee";
-  private postapiUrl="https://localhost:7283/api/Employee";
+ //postapiUrl="https://localhost:7283/api/Employee/AddEmployee";
   private getDepartmentsAPIUrl="https://localhost:7004/api/Department/GetDepartments";
  
 
